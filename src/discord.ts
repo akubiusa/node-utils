@@ -194,23 +194,27 @@ export class Discord {
   /**
    * Validation rules for {@link ConfigFramework.validates}.
    *
-   * Note that the rules cannot all pass for any single configuration:
-   * a Bot configuration fails `webhookUrl is valid`, and a Webhook configuration fails `token is valid`.
+   * Requires either `token` and `channelId`, or `webhookUrl`.
+   * Each provided field must be a non-empty string.
    */
-  public static get validations(): Record<string, (options: any) => boolean> {
+  public static get validations(): Record<
+    string,
+    (options: object) => boolean
+  > {
     return {
-      'token or webhookUrl and channelId': (options: any) =>
-        'token' in options ||
-        ('webhookUrl' in options && 'channelId' in options),
-      'token is valid': (options: any) =>
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'token' in options && typeof options.token === 'string',
-      'webhookUrl is valid': (options: any) =>
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'webhookUrl' in options && typeof options.webhookUrl === 'string',
-      'channelId is valid': (options: any) =>
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        'channelId' in options && typeof options.channelId === 'string',
+      'token and channelId or webhookUrl': (options) =>
+        ('token' in options && 'channelId' in options) ||
+        'webhookUrl' in options,
+      'token is valid': (options) =>
+        !('token' in options) ||
+        (typeof options.token === 'string' && options.token.length > 0),
+      'webhookUrl is valid': (options) =>
+        !('webhookUrl' in options) ||
+        (typeof options.webhookUrl === 'string' &&
+          options.webhookUrl.length > 0),
+      'channelId is valid': (options) =>
+        !('channelId' in options) ||
+        (typeof options.channelId === 'string' && options.channelId.length > 0),
     }
   }
 

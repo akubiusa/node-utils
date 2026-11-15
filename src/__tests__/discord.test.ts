@@ -84,23 +84,62 @@ describe('Discord', () => {
   describe('validations', () => {
     const validations = Discord.validations
 
-    it('should validate token or webhookUrl and channelId', () => {
+    it.each([
+      { token: 'test-token', channelId: 'test-channel' },
+      { webhookUrl: 'https://discord.com/api/webhooks/123/abc' },
+    ])('should pass every validation for %j', (options) => {
+      for (const validate of Object.values(validations)) {
+        expect(validate(options)).toBe(true)
+      }
+    })
+
+    it.each([
+      {},
+      { token: 'test-token' },
+      { channelId: 'test-channel' },
+      { token: '', channelId: 'test-channel' },
+      { token: 'test-token', channelId: '' },
+      { webhookUrl: '' },
+      { token: 123, channelId: 'test-channel' },
+      { token: 'test-token', channelId: 123 },
+      { webhookUrl: 123 },
+      { token: null, channelId: 'test-channel' },
+      { token: 'test-token', channelId: null },
+      { webhookUrl: null },
+    ])('should fail validation for %j', (options) => {
       expect(
-        validations['token or webhookUrl and channelId']({ token: 'test' })
-      ).toBe(true)
+        Object.values(validations).every((validate) => validate(options))
+      ).toBe(false)
+    })
+
+    it('should require token and channelId or webhookUrl', () => {
       expect(
-        validations['token or webhookUrl and channelId']({
-          webhookUrl: 'test',
+        validations['token and channelId or webhookUrl']({
+          token: 'test',
           channelId: 'test',
         })
       ).toBe(true)
-      expect(validations['token or webhookUrl and channelId']({})).toBe(false)
+      expect(
+        validations['token and channelId or webhookUrl']({
+          webhookUrl: 'test',
+        })
+      ).toBe(true)
+      expect(
+        validations['token and channelId or webhookUrl']({ token: 'test' })
+      ).toBe(false)
+      expect(
+        validations['token and channelId or webhookUrl']({
+          channelId: 'test',
+        })
+      ).toBe(false)
+      expect(validations['token and channelId or webhookUrl']({})).toBe(false)
     })
 
     it('should validate token is valid', () => {
       expect(validations['token is valid']({ token: 'test' })).toBe(true)
       expect(validations['token is valid']({ token: 123 })).toBe(false)
-      expect(validations['token is valid']({})).toBe(false)
+      expect(validations['token is valid']({ token: '' })).toBe(false)
+      expect(validations['token is valid']({})).toBe(true)
     })
 
     it('should validate webhookUrl is valid', () => {
@@ -110,7 +149,8 @@ describe('Discord', () => {
       expect(validations['webhookUrl is valid']({ webhookUrl: 123 })).toBe(
         false
       )
-      expect(validations['webhookUrl is valid']({})).toBe(false)
+      expect(validations['webhookUrl is valid']({ webhookUrl: '' })).toBe(false)
+      expect(validations['webhookUrl is valid']({})).toBe(true)
     })
 
     it('should validate channelId is valid', () => {
@@ -118,7 +158,8 @@ describe('Discord', () => {
         true
       )
       expect(validations['channelId is valid']({ channelId: 123 })).toBe(false)
-      expect(validations['channelId is valid']({})).toBe(false)
+      expect(validations['channelId is valid']({ channelId: '' })).toBe(false)
+      expect(validations['channelId is valid']({})).toBe(true)
     })
   })
 

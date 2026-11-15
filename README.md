@@ -139,6 +139,8 @@ ErrorReporter.captureException(new Error('boom'), { userId: '123' })
 
 You can send messages to Discord using a Discord Bot (`token` and `channelId`) or a Discord Webhook (`webhookUrl`). Messages can contain `content`, `embeds`, link buttons (`components`) or a `file`. `sendMessage()` returns the ID of the sent message (`undefined` when a webhook responds with 204), and `editMessage(messageId, message)` edits a message sent through the same bot channel or webhook.
 
+Spread `Discord.validations` into your `ConfigFramework` subclass's `validates()` rules to validate either configuration style. The rules require `token` and `channelId`, or `webhookUrl`; each provided field must be a non-empty string.
+
 ```typescript
 import { Discord, DiscordMessageFlag } from '@book000/node-utils'
 
