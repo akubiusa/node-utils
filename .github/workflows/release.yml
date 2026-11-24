@@ -59,6 +59,29 @@ jobs:
       - name: 👨🏻‍💻 Install dependencies
         run: pnpm install --frozen-lockfile --prefer-frozen-lockfile
 
+      - name: 🧪 Test
+        run: pnpm test
+
+      - name: 🏃 Build before tagging
+        run: pnpm run build
+
+      - name: 🔍 Verify dist contents before tagging
+        run: |
+          test -f dist/index.js
+          test -f dist/index.d.ts
+
+      - name: 📦 Verify pack contents before tagging
+        run: |
+          mkdir -p /tmp/pre-tag-pack-check
+          pnpm pack --pack-destination /tmp/pre-tag-pack-check
+          TARBALL=$(ls /tmp/pre-tag-pack-check/*.tgz | head -1)
+          tar -tzf "$TARBALL" | tee /tmp/pre-tag-pack-files.txt
+          grep -q '^package/dist/index.js$' /tmp/pre-tag-pack-files.txt
+          grep -q '^package/dist/index.d.ts$' /tmp/pre-tag-pack-files.txt
+
+      - name: 🔍 Lint before tagging
+        run: pnpm run lint
+
       - name: 🏷 Bump version and push tag
         id: tag-version
         uses: mathieudutour/github-tag-action@a22cf08638b34d5badda920f9daf6e72c477b07b # v6.2
