@@ -62,25 +62,22 @@ jobs:
       - name: 🧪 Test
         run: pnpm test
 
-      - name: 🏃 Build before tagging
+      - name: 🏃 Build
         run: pnpm run build
 
-      - name: 🔍 Verify dist contents before tagging
-        run: |
-          test -f dist/index.js
-          test -f dist/index.d.ts
-
-      - name: 📦 Verify pack contents before tagging
-        run: |
-          mkdir -p /tmp/pre-tag-pack-check
-          pnpm pack --pack-destination /tmp/pre-tag-pack-check
-          TARBALL=$(ls /tmp/pre-tag-pack-check/*.tgz | head -1)
-          tar -tzf "$TARBALL" | tee /tmp/pre-tag-pack-files.txt
-          grep -q '^package/dist/index.js$' /tmp/pre-tag-pack-files.txt
-          grep -q '^package/dist/index.d.ts$' /tmp/pre-tag-pack-files.txt
-
-      - name: 🔍 Lint before tagging
+      - name: 🔍 Lint
         run: pnpm run lint
+
+      # Validate the publish target once, before the tag exists. The tarball
+      # contents do not depend on the version (dist embeds no version, and
+      # src/examples is excluded by tsconfig.build.json and `files`), so the
+      # build and this check stay valid after the version bump below.
+      # --ignore-scripts matches the publish step and avoids a second build.
+      - name: 📦 Verify pack contents
+        run: |
+          pnpm pack --ignore-scripts --dry-run --json > "$RUNNER_TEMP/pack.json"
+          cat "$RUNNER_TEMP/pack.json"
+          jq -e '[.files[].path] as $f | ["dist/index.js", "dist/index.d.ts"] | all(. as $p | $f | index($p) != null)' "$RUNNER_TEMP/pack.json"
 
       - name: 🏷 Bump version and push tag
         id: tag-version
@@ -90,35 +87,9 @@ jobs:
           default_bump: 'minor'
           custom_release_rules: 'feat:minor:✨ Features,fix:patch:🐛 Fixes,docs:patch:📰 Docs,chore:patch:🎨 Chore,perf:patch:🎈 Performance improvements,refactor:patch:🧹 Refactoring,build:patch:🔍 Build,ci:patch:🔍 CI,revert:patch:⏪ Revert,style:patch:🧹 Style,test:patch:👀 Test,release:major:📦 Release'
 
+      # The working tree is still clean here, which `pnpm version` requires.
       - name: 📝 Update package.json version
-        run: |
-          # Run pnpm version before rm -rfv src/examples so that
-          # the working tree is still clean and the check passes
-          pnpm version --no-git-tag-version ${{ steps.tag-version.outputs.new_version }}
-
-      - name: 🗑️ Remove examples directory
-        run: rm -rfv src/examples
-
-      - name: 🏃 Build
-        run: pnpm run build
-
-      - name: 🔍 Verify dist contents
-        run: |
-          test -f dist/index.js
-          test -f dist/index.d.ts
-
-      - name: 📦 Verify pack contents
-        run: |
-          mkdir -p /tmp/pack-check
-          pnpm pack --pack-destination /tmp/pack-check
-          TARBALL=$(ls /tmp/pack-check/*.tgz | head -1)
-          echo "Inspecting $TARBALL"
-          tar -tzf "$TARBALL" | tee /tmp/pack-files.txt
-          grep -q '^package/dist/index.js$' /tmp/pack-files.txt
-          grep -q '^package/dist/index.d.ts$' /tmp/pack-files.txt
-
-      - name: 🔍 Lint
-        run: pnpm run lint
+        run: pnpm version --no-git-tag-version ${{ steps.tag-version.outputs.new_version }}
 
       - name: 📦 Publish
         run: |
